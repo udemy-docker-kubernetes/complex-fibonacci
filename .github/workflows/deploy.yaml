@@ -1,0 +1,65 @@
+name: Deploy Multicontainer
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build dev image
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/complex-fibonacci_client_tests -f ./complex-fibonacci_client/dockerfile.dev ./complex-fibonacci_client
+
+      - name: Run tests
+        run: docker run -e -CI=true ${{ secrets.DOCKERHUB_USERNAME }}/complex-fibonacci_client_tests npm run test:coverage
+
+  build_and_push:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push client
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          context: ./complex-fibonacci_client
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/complex-fibonacci_client
+
+      - name: Build and push server
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          context: ./complex-fibonacci_server
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/complex-fibonacci_server
+
+      - name: Build and push worker
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          context: ./complex-fibonacci_worker
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/complex-fibonacci_worker
+
+      - name: Build and push nginx
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          context: ./complex-fibonacci_nginx
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/complex-fibonacci_nginx

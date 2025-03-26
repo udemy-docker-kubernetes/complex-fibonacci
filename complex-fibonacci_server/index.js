@@ -12,17 +12,15 @@ app.use(bodyParser.json());
 // Postgres Setup
 const { Pool } = require('pg');
 
-const pgClient = new Pool({
+const pgPoolConfig = {
   user: keys.pgUser,
   password: keys.pgPassword,
   host: keys.pgHost,
   port: keys.pgPort,
   database: keys.pgDatabase,
-  ssl:
-    process.env.NODE_ENV !== 'production'
-      ? false
-      : { rejectUnauthorized: false },
-});
+}
+
+const pgClient = new Pool(pgPoolConfig);
 
 pgClient.on('error', () => console.error('Lost PG Connection'));
 
